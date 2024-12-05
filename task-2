@@ -1,0 +1,156 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Scanner;
+
+public class Hms {
+
+    private static Connection connect() throws SQLException, ClassNotFoundException {
+    	Class.forName("com.mysql.cj.jdbc.Driver");
+        String url = "jdbc:mysql://localhost:3306/hospital_management";
+        String user = "root";
+        String password = "root";
+        return DriverManager.getConnection(url, user, password);
+    }
+
+    // Patient Registration
+    public static void registerPatient() throws SQLException, ClassNotFoundException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter patient's first name:");
+        String firstName = scanner.nextLine();
+        System.out.println("Enter patient's last name:");
+        String lastName = scanner.nextLine();
+        System.out.println("Enter patient's date of birth (YYYY-MM-DD):");
+        String dob = scanner.nextLine();
+        System.out.println("Enter patient's gender:");
+        String gender = scanner.nextLine();
+        System.out.println("Enter patient's address:");
+        String address = scanner.nextLine();
+        System.out.println("Enter patient's phone number:");
+        String phone = scanner.nextLine();
+        System.out.println("Enter patient's email:");
+        String email = scanner.nextLine();
+
+        Connection conn = connect();
+        String query = "INSERT INTO patients (first_name, last_name, dob, gender, address, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement pst = conn.prepareStatement(query)) {
+            pst.setString(1, firstName);
+            pst.setString(2, lastName);
+            pst.setString(3, dob);
+            pst.setString(4, gender);
+            pst.setString(5, address);
+            pst.setString(6, phone);
+            pst.setString(7, email);
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Patient registered successfully.");
+            }
+        }
+   }
+
+    // Appointment Scheduling
+    public static void scheduleAppointment() throws SQLException, ClassNotFoundException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter patient ID:");
+        int patientId = scanner.nextInt();
+        System.out.println("Enter doctor ID:");
+        int doctorId = scanner.nextInt();
+        System.out.println("Enter appointment date (YYYY-MM-DD HH:MM:SS):");
+        String appointmentDate = scanner.next();
+
+        Connection conn = connect();
+        String query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, status) VALUES (?, ?, ?, 'Scheduled')";
+        try (PreparedStatement pst = conn.prepareStatement(query)) {
+            pst.setInt(1, patientId);
+            pst.setInt(2, doctorId);
+            pst.setString(3, appointmentDate);
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Appointment scheduled successfully.");
+            }
+        }
+    }
+
+    // View Patient's Health Record (EHR)
+    public static void viewEHR() throws SQLException, ClassNotFoundException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter patient ID:");
+        int patientId = scanner.nextInt();
+
+        Connection conn = connect();
+        String query = "SELECT * FROM ehr WHERE patient_id = ?";
+        try (PreparedStatement pst = conn.prepareStatement(query)) {
+            pst.setInt(1, patientId);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                System.out.println("Diagnosis: " + rs.getString("diagnosis"));
+                System.out.println("Treatment: " + rs.getString("treatment"));
+                System.out.println("Prescription: " + rs.getString("prescription"));
+            } else {
+                System.out.println("No health record found for this patient.");
+            }
+        }
+    }
+
+    // Billing Management
+    public static void generateBill() throws SQLException, ClassNotFoundException {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter patient ID:");
+        int patientId = scanner.nextInt();
+        System.out.println("Enter the amount for the bill:");
+        double amount = scanner.nextDouble();
+
+        Connection conn = connect();
+        String query = "INSERT INTO billing (patient_id, amount, bill_date, paid_status) VALUES (?, ?, NOW(), FALSE)";
+        try (PreparedStatement pst = conn.prepareStatement(query)) {
+            pst.setInt(1, patientId);
+            pst.setDouble(2, amount);
+            int rowsAffected = pst.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("Bill generated successfully.");
+            }
+        }
+    }
+
+    // Main Method to Run the System
+    public static void main(String[] args) throws ClassNotFoundException 
+    {
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("\nHospital Management System");
+            System.out.println("1. Register Patient");
+            System.out.println("2. Schedule Appointment");
+            System.out.println("3. View EHR");
+            System.out.println("4. Generate Bill");
+            System.out.println("5. Exit");
+            System.out.print("Enter your choice: ");
+            int choice = scanner.nextInt();
+
+            try {
+                switch (choice) {
+                    case 1:
+                        registerPatient();
+                        break;
+                    case 2:
+                        scheduleAppointment();
+                        break;
+                    case 3:
+                        viewEHR();
+                        break;
+                    case 4:
+                        generateBill();
+                        break;
+                    case 5:
+                        System.out.println("Exiting the system...");
+                        return;
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
+                }
+            } catch (SQLException e) {
+                System.out.println("Database error: " + e.getMessage());
+            }
+        }
+    }
+}
